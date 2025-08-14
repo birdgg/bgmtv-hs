@@ -1,0 +1,50 @@
+cabal-version: 3.0
+name: bgm-tv
+version: 0.1.0.0
+-- synopsis:
+-- description:
+license: MIT
+license-file: LICENSE
+author: birdgg
+maintainer: birdeggegg@gmail.com
+-- copyright:
+category: Web
+build-type: Simple
+extra-doc-files: CHANGELOG.md
+
+-- extra-source-files:
+common warnings
+  ghc-options: -Wall
+
+library
+  import: warnings
+  exposed-modules: BgmTV
+  other-modules:
+    BgmTV.API.Calendar
+    BgmTV.Types.Subject
+
+  other-extensions:
+    LambdaCase
+
+  build-depends:
+    aeson,
+    base ^>=4.21.0.0,
+    http-client,
+    http-client-tls,
+    servant,
+    servant-client,
+    servant-client-core,
+    text,
+
+  hs-source-dirs: src
+  default-language: GHC2024
+
+executable bgm-tv-examples
+  import: warnings
+  main-is: Main.hs
+  build-depends:
+    aeson,
+    base ^>=4.21.0.0,
+    bgm-tv
+  hs-source-dirs: examples
+  default-language: GHC2024
