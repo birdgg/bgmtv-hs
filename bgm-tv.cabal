@@ -1,13 +1,11 @@
 cabal-version: 3.0
 name: bgm-tv
 version: 0.1.0.0
--- synopsis:
--- description:
+description: A Haskell client library for the BgmTV API.
 license: MIT
 license-file: LICENSE
 author: birdgg
 maintainer: birdeggegg@gmail.com
--- copyright:
 category: Web
 build-type: Simple
 extra-doc-files: CHANGELOG.md
@@ -16,35 +14,45 @@ extra-doc-files: CHANGELOG.md
 common warnings
   ghc-options: -Wall
 
+common deps
+  build-depends:
+    aeson,
+    base ^>=4.21.0.0,
+    http-client,
+    http-client-tls,
+    text,
+
 library
-  import: warnings
+  import: warnings, deps
   exposed-modules: BgmTV
   other-modules:
-    BgmTV.API.Calendar
+    BgmTV.API
+    BgmTV.Types.Internal
     BgmTV.Types.Subject
 
   other-extensions:
     LambdaCase
 
   build-depends:
-    aeson,
-    base ^>=4.21.0.0,
-    http-client,
-    http-client-tls,
     servant,
     servant-client,
     servant-client-core,
-    text,
 
   hs-source-dirs: src
   default-language: GHC2024
 
-executable bgm-tv-examples
-  import: warnings
+test-suite bgm-tv-test
+  import: warnings, deps
+  type: exitcode-stdio-1.0
   main-is: Main.hs
+  other-modules:
+    APITest
+
   build-depends:
-    aeson,
-    base ^>=4.21.0.0,
-    bgm-tv
-  hs-source-dirs: examples
+    bgm-tv,
+    servant-client,
+    tasty,
+    tasty-hunit,
+
+  hs-source-dirs: test
   default-language: GHC2024

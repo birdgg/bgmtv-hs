@@ -1,3 +1,7 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module BgmTV.Types.Subject where
 
 import Data.Aeson
@@ -42,55 +46,112 @@ data SubjectRating = SubjectRating
 instance ToJSON SubjectRating
 instance FromJSON SubjectRating
 
-data Subject = Subject
+data SubjectBase = SubjectBase
   { id :: Int
-  , url :: Text
-  , stype :: [SubjectType]
+  , stype :: SubjectType
   , name :: Text
   , nameCn :: Text
   , summary :: Text
-  , airDate :: Text
-  , airWeekday :: Int
   , images :: SubjectImages
-  , eps :: Int
-  , epsCount :: Int
-  , rating :: SubjectRating
-  , rank :: Int
+  , rating :: Maybe SubjectRating
+  , rank :: Maybe Int
   }
   deriving (Show, Generic)
 
-instance ToJSON Subject where
-  toJSON =
-    genericToJSON
-      defaultOptions
-        { fieldLabelModifier = \case
-            "stype" -> "type"
-            "airDate" -> "air_date"
-            "nameCn" -> "name_cn"
-            "airWeekday" -> "air_weekday"
-            "epsCount" -> "eps_count"
-            other -> other
-        }
-
-instance FromJSON Subject where
+instance FromJSON SubjectBase where
   parseJSON =
     genericParseJSON
       defaultOptions
         { fieldLabelModifier = \case
-            "type" -> "stype"
-            "air_date" -> "airDate"
-            "name_cn" -> "nameCn"
-            "air_weekday" -> "airWeekday"
-            "eps_count" -> "epsCount"
+            "stype" -> "type"
+            "nameCn" -> "name_cn"
             other -> other
         }
+
+data Subject = Subject
+  { base :: SubjectBase
+  , series :: Bool
+  , nsfw :: Bool
+  , locked :: Bool
+  }
+  deriving (Show, Generic)
+
+instance FromJSON Subject where
+  parseJSON = withObject "Subject" $ \o -> do
+    baseSubject <- parseJSON (Object o)
+    series <- o .: "series"
+    nsfw <- o .: "nsfw"
+    locked <- o .: "locked"
+    pure $ Subject baseSubject series nsfw locked
+
+data SubjectSmall = SubjectSmall
+  { base :: SubjectBase
+  , url :: Text
+  , airWeekday :: Int
+  }
+  deriving (Show, Generic)
+
+instance FromJSON SubjectSmall where
+  parseJSON = withObject "SubjectSmall" $ \o -> do
+    baseSubject <- parseJSON (Object o)
+    url <- o .: "url"
+    airWeekday <- o .: "air_weekday"
+    pure $ SubjectSmall baseSubject url airWeekday
 
 data Weekday = Weekday {en :: Text, cn :: Text, ja :: Text} deriving (Show, Generic)
 
 instance ToJSON Weekday
 instance FromJSON Weekday
 
-data Calendar = Calendar {weekday :: Weekday, items :: [Subject]} deriving (Show, Generic)
+type Calendar = [CalendarDay]
 
-instance ToJSON Calendar
-instance FromJSON Calendar
+data CalendarDay = CalendarDay
+  { weekday :: Weekday
+  , items :: [SubjectSmall]
+  }
+  deriving (Show, Generic)
+
+instance FromJSON CalendarDay
+
+data SubjectQuery = SubjectQuery
+  { keyword :: Text
+  , sort :: Maybe SubjectSort
+  , filter :: Maybe SubjectFilter
+  }
+  deriving (Generic, Show)
+
+instance ToJSON SubjectQuery
+
+data SubjectSort = Match | Heat | Rank | Score deriving (Show, Eq)
+
+instance ToJSON SubjectSort where
+  toJSON Match = String "match"
+  toJSON Heat = String "heat"
+  toJSON Rank = String "rank"
+  toJSON Score = String "score"
+
+data SubjectFilter = SubjectFilter
+  { stype :: Maybe [SubjectType]
+  , metaTags :: Maybe [Text]
+  , tags :: Maybe [Text]
+  , airDate :: Maybe [Text]
+  -- ^ example: List [ ">=2020-07-01", "<2020-10-01" ]
+  , rating :: Maybe [Text]
+  -- ^ example: List [ ">=6", "<8" ]
+  , rank :: Maybe [Text]
+  -- ^ example: List [ ">10", "<=18" ]
+  , nsfw :: Maybe Bool
+  }
+  deriving (Generic, Show)
+
+instance ToJSON SubjectFilter where
+  toJSON SubjectFilter{..} =
+    object
+      [ "type" .= stype
+      , "meta_tags" .= metaTags
+      , "tags" .= tags
+      , "air_date" .= airDate
+      , "rating" .= rating
+      , "rank" .= rank
+      , "nsfw" .= nsfw
+      ]
