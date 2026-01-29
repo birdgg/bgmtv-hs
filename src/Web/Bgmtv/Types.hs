@@ -27,11 +27,11 @@ import GHC.Generics (Generic)
 
 -- | BGM.tv subject type
 data SubjectType
-  = Book
-  | Anime
-  | Music
-  | Game
-  | Real
+  = Book   -- ^ 书籍 (type=1)
+  | Anime  -- ^ 动画 (type=2)
+  | Music  -- ^ 音乐 (type=3)
+  | Game   -- ^ 游戏 (type=4)
+  | Real   -- ^ 三次元 (type=6)
   deriving stock (Show, Eq, Generic)
 
 instance ToJSON SubjectType where
@@ -82,8 +82,8 @@ instance FromJSON EpisodeType where
 
 -- | Search request body for POST /v0/search/subjects
 data SearchRequest = SearchRequest
-  { keyword :: Text
-  , filter_ :: Maybe SearchFilter
+  { keyword :: Text                  -- ^ 搜索关键词
+  , filter_ :: Maybe SearchFilter    -- ^ 可选的搜索过滤条件
   }
   deriving stock (Show, Eq, Generic)
 
@@ -95,9 +95,9 @@ instance ToJSON SearchRequest where
 
 -- | Search filter options
 data SearchFilter = SearchFilter
-  { subjectType :: Maybe [SubjectType]
-  , metaTags :: Maybe [Text]
-  , airDate :: Maybe [Text]
+  { subjectType :: Maybe [SubjectType]  -- ^ 条目类型过滤，可指定多个类型
+  , metaTags :: Maybe [Text]            -- ^ 元标签过滤，如 \"TV\"、\"剧场版\" 等
+  , airDate :: Maybe [Text]             -- ^ 放送日期过滤，格式如 \">=2020-01-01\"
   }
   deriving stock (Show, Eq, Generic)
 
@@ -114,10 +114,10 @@ instance ToJSON SearchFilter where
 
 -- | Search response from POST /v0/search/subjects
 data SearchResponse = SearchResponse
-  { total :: Int64
-  , limit :: Int64
-  , offset :: Int64
-  , data_ :: [Subject]
+  { total :: Int64       -- ^ 匹配的条目总数
+  , limit :: Int64       -- ^ 本次返回的最大条目数
+  , offset :: Int64      -- ^ 结果偏移量
+  , data_ :: [Subject]   -- ^ 搜索结果列表
   }
   deriving stock (Show, Eq, Generic)
 
@@ -131,25 +131,25 @@ instance FromJSON SearchResponse where
 
 -- | Subject images from BGM.tv API
 data SubjectImages = SubjectImages
-  { small :: Text
-  , grid :: Text
-  , large :: Text
-  , medium :: Text
-  , common :: Text
+  { small :: Text    -- ^ 小尺寸封面图 URL
+  , grid :: Text     -- ^ 网格尺寸封面图 URL
+  , large :: Text    -- ^ 大尺寸封面图 URL
+  , medium :: Text   -- ^ 中尺寸封面图 URL
+  , common :: Text   -- ^ 通用尺寸封面图 URL
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
 -- | Subject item in search results
 data Subject = Subject
-  { id :: Int64
-  , name :: Text
-  , nameCn :: Text
-  , date :: Text
-  , platform :: Text
-  , images :: SubjectImages
-  , image :: Text
-  , eps :: Int64
+  { id :: Int64             -- ^ 条目 ID
+  , name :: Text            -- ^ 原始名称（通常为日文）
+  , nameCn :: Text          -- ^ 中文名称
+  , date :: Text            -- ^ 放送/发售日期
+  , platform :: Text        -- ^ 平台（如 \"TV\"、\"WEB\" 等）
+  , images :: SubjectImages -- ^ 各尺寸封面图
+  , image :: Text           -- ^ 默认封面图 URL
+  , eps :: Int64            -- ^ 总集数
   }
   deriving stock (Show, Eq, Generic)
 
@@ -167,21 +167,21 @@ instance FromJSON Subject where
 
 -- | Detailed subject information from GET /v0/subjects/{id}
 data SubjectDetail = SubjectDetail
-  { id :: Int64
-  , subjectType :: SubjectType
-  , name :: Text
-  , nameCn :: Text
-  , summary :: Text
-  , nsfw :: Bool
-  , locked :: Bool
-  , date :: Maybe Text
-  , platform :: Maybe Text
-  , images :: SubjectImages
-  , volumes :: Int64
-  , eps :: Int64
-  , totalEpisodes :: Int64
-  , metaTags :: [Text]
-  , series :: Bool
+  { id :: Int64               -- ^ 条目 ID
+  , subjectType :: SubjectType -- ^ 条目类型
+  , name :: Text              -- ^ 原始名称（通常为日文）
+  , nameCn :: Text            -- ^ 中文名称
+  , summary :: Text           -- ^ 条目简介
+  , nsfw :: Bool              -- ^ 是否为 NSFW 内容
+  , locked :: Bool            -- ^ 条目是否被锁定
+  , date :: Maybe Text        -- ^ 放送/发售日期（可能为空）
+  , platform :: Maybe Text    -- ^ 平台（可能为空）
+  , images :: SubjectImages   -- ^ 各尺寸封面图
+  , volumes :: Int64          -- ^ 卷数（书籍类型适用）
+  , eps :: Int64              -- ^ 已更新集数
+  , totalEpisodes :: Int64    -- ^ 总集数
+  , metaTags :: [Text]        -- ^ 元标签列表
+  , series :: Bool            -- ^ 是否为系列作品
   }
   deriving stock (Show, Eq, Generic)
 
@@ -206,13 +206,13 @@ instance FromJSON SubjectDetail where
 
 -- | Episode item
 data Episode = Episode
-  { id :: Int64
-  , episodeType :: EpisodeType
-  , name :: Text
-  , nameCn :: Text
-  , sort :: Double
-  , ep :: Maybe Double
-  , airdate :: Text
+  { id :: Int64               -- ^ 剧集 ID
+  , episodeType :: EpisodeType -- ^ 剧集类型（本篇、SP、OP、ED）
+  , name :: Text              -- ^ 原始标题
+  , nameCn :: Text            -- ^ 中文标题
+  , sort :: Double            -- ^ 排序序号
+  , ep :: Maybe Double        -- ^ 集数编号（可能为空）
+  , airdate :: Text           -- ^ 放送日期
   }
   deriving stock (Show, Eq, Generic)
 
@@ -229,10 +229,10 @@ instance FromJSON Episode where
 
 -- | Episodes API response from GET /v0/episodes
 data EpisodesResponse = EpisodesResponse
-  { data_ :: [Episode]
-  , total :: Int64
-  , limit :: Int64
-  , offset :: Int64
+  { data_ :: [Episode]  -- ^ 剧集列表
+  , total :: Int64      -- ^ 总剧集数
+  , limit :: Int64      -- ^ 本次返回的最大条目数
+  , offset :: Int64     -- ^ 结果偏移量
   }
   deriving stock (Show, Eq, Generic)
 
