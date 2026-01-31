@@ -7,14 +7,14 @@ module Web.Bgmtv.Client
     -- * Error Types
   , BgmtvError (..)
 
+    -- * Client Record
+  , BgmtvClient (..)
+  , newBgmtvClient
+  , newBgmtvClientWith
+
     -- * Running Requests
   , runBgmtv
   , runBgmtvWith
-
-    -- * High-level Functions
-  , searchAnime
-  , getSubject
-  , getAllEpisodes
 
     -- * Low-level ClientM Functions
   , searchSubjectsM
@@ -54,6 +54,64 @@ data BgmtvError
     ClientErr ClientError
   deriving stock (Show)
 
+-- | BGM.tv API client with pre-configured settings
+--
+-- Use 'newBgmtvClient' to create a client, then call methods using record dot syntax:
+--
+-- @
+-- client <- newBgmtvClient (defaultConfig "my-app\/1.0")
+-- result <- client.searchAnime "葬送的芙莉蓮"
+-- detail <- client.getSubject (SubjectId 425251)
+-- @
+data BgmtvClient = BgmtvClient
+  { -- | Search for Japanese anime by keyword
+    searchAnime :: Text -> IO (Either BgmtvError [Subject])
+  , -- | Search subjects with custom request
+    searchSubjects :: SearchRequest -> IO (Either BgmtvError SearchResponse)
+  , -- | Get subject details by ID
+    getSubject :: SubjectId -> IO (Either BgmtvError SubjectDetail)
+  , -- | Get all episodes with automatic pagination
+    getAllEpisodes :: SubjectId -> IO (Either BgmtvError [Episode])
+  , -- | Get episodes with manual pagination
+    getEpisodes :: SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Either BgmtvError EpisodesResponse)
+  }
+
+-- | Create a new BGM.tv client with auto-managed HTTP connection
+newBgmtvClient :: BgmtvConfig -> IO BgmtvClient
+newBgmtvClient config = do
+  manager <- newManager tlsManagerSettings
+  pure $ newBgmtvClientWith manager config
+
+-- | Create a new BGM.tv client with a custom HTTP manager
+newBgmtvClientWith :: Manager -> BgmtvConfig -> BgmtvClient
+newBgmtvClientWith manager config =
+  let run :: ClientM a -> IO (Either BgmtvError a)
+      run = runBgmtvWith manager config
+  in BgmtvClient
+      { searchAnime = \keyword -> do
+          let req =
+                SearchRequest
+                  { keyword = keyword
+                  , filter_ =
+                      Just
+                        SearchFilter
+                          { subjectType = Just [Anime]
+                          , metaTags = Just ["日本"]
+                          , airDate = Nothing
+                          }
+                  }
+          result <- run (searchSubjectsM config.userAgent req)
+          pure $ fmap (.data_) result
+      , searchSubjects = \req ->
+          run (searchSubjectsM config.userAgent req)
+      , getSubject = \subjectId ->
+          run (getSubjectM config.userAgent subjectId)
+      , getAllEpisodes = \subjectId ->
+          getAllEpisodesLoop manager config subjectId 0 []
+      , getEpisodes = \subjectId limit offset ->
+          run (getEpisodesM config.userAgent subjectId limit offset)
+      }
+
 -- | Generated client functions record (internal)
 client' :: BgmtvRoutes (AsClientT ClientM)
 client' = genericClient
@@ -84,49 +142,19 @@ searchSubjectsM :: Text -> SearchRequest -> ClientM SearchResponse
 searchSubjectsM ua req = API.searchSubjects client' ua req
 
 -- | Get subject details by ID
-getSubjectM :: Text -> Int64 -> ClientM SubjectDetail
+getSubjectM :: Text -> SubjectId -> ClientM SubjectDetail
 getSubjectM ua subjectId = API.getSubject client' subjectId ua
 
 -- | Get episodes with pagination
-getEpisodesM :: Text -> Int64 -> Maybe Int64 -> Maybe Int64 -> ClientM EpisodesResponse
+getEpisodesM :: Text -> SubjectId -> Maybe Int64 -> Maybe Int64 -> ClientM EpisodesResponse
 getEpisodesM ua subjectId limit offset =
   API.getEpisodes client' ua subjectId limit offset
-
--- * High-level Functions
-
--- | Search for Japanese anime
-searchAnime :: BgmtvConfig -> Text -> IO (Either BgmtvError [Subject])
-searchAnime config keyword = do
-  let req =
-        SearchRequest
-          { keyword = keyword
-          , filter_ =
-              Just
-                SearchFilter
-                  { subjectType = Just [Anime]
-                  , metaTags = Just ["日本"]
-                  , airDate = Nothing
-                  }
-          }
-  result <- runBgmtv config (searchSubjectsM config.userAgent req)
-  pure $ fmap (.data_) result
-
--- | Get subject details by ID (convenience wrapper)
-getSubject :: BgmtvConfig -> Int64 -> IO (Either BgmtvError SubjectDetail)
-getSubject config subjectId =
-  runBgmtv config (getSubjectM config.userAgent subjectId)
-
--- | Get all episodes with automatic pagination
-getAllEpisodes :: BgmtvConfig -> Int64 -> IO (Either BgmtvError [Episode])
-getAllEpisodes config subjectId = do
-  manager <- newManager tlsManagerSettings
-  getAllEpisodesLoop manager config subjectId 0 []
 
 -- | Internal: fetch all episodes with pagination loop
 getAllEpisodesLoop
   :: Manager
   -> BgmtvConfig
-  -> Int64
+  -> SubjectId
   -> Int64
   -> [Episode]
   -> IO (Either BgmtvError [Episode])

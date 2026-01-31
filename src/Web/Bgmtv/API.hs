@@ -35,7 +35,7 @@ data BgmtvRoutes mode = BgmtvRoutes
       :: mode
         :- "v0"
           :> "subjects"
-          :> Capture "id" Int64
+          :> Capture "id" SubjectId
           :> Header' '[Required, Strict] "User-Agent" Text
           :> Get '[JSON] SubjectDetail
   , -- | 获取指定条目的剧集列表，支持分页
@@ -44,7 +44,7 @@ data BgmtvRoutes mode = BgmtvRoutes
         :- "v0"
           :> "episodes"
           :> Header' '[Required, Strict] "User-Agent" Text
-          :> QueryParam' '[Required, Strict] "subject_id" Int64
+          :> QueryParam' '[Required, Strict] "subject_id" SubjectId
           :> QueryParam "limit" Int64
           :> QueryParam "offset" Int64
           :> Get '[JSON] EpisodesResponse
