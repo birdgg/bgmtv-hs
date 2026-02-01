@@ -7,6 +7,7 @@ module Web.Bgmtv.Types
     -- * Enums
     SubjectType (..),
     EpisodeType (..),
+    Platform (..),
 
     -- * Search
     SearchRequest (..),
@@ -98,6 +99,33 @@ instance FromJSON EpisodeType where
       3 -> pure Ending
       _ -> fail $ "Unknown EpisodeType: " <> show n
 
+-- | Platform type for anime distribution
+data Platform
+  = -- | TV 放送
+    TV
+  | -- | 剧场版/电影
+    Theatrical
+  | -- | OVA/OAD
+    OVA
+  | -- | 其他平台
+    OtherPlatform Text
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON Platform where
+  toJSON = \case
+    TV -> String "TV"
+    Theatrical -> String "剧场版"
+    OVA -> String "OVA"
+    OtherPlatform t -> String t
+
+instance FromJSON Platform where
+  parseJSON = withText "Platform" $ \t ->
+    pure $ case t of
+      "TV" -> TV
+      "剧场版" -> Theatrical
+      "OVA" -> OVA
+      other -> OtherPlatform other
+
 -- | Search request body for POST /v0/search/subjects
 data SearchRequest = SearchRequest
   { -- | 搜索关键词
@@ -182,8 +210,8 @@ data Subject = Subject
     nameCn :: Text,
     -- | 放送/发售日期（可能为空）
     date :: Maybe Text,
-    -- | 平台（如 \"TV\"、\"WEB\" 等）
-    platform :: Text,
+    -- | 播放平台
+    platform :: Platform,
     -- | 各尺寸封面图
     images :: SubjectImages,
     -- | 默认封面图 URL（可能为空）
@@ -223,8 +251,8 @@ data SubjectDetail = SubjectDetail
     locked :: Bool,
     -- | 放送/发售日期（可能为空）
     date :: Maybe Text,
-    -- | 平台（可能为空）
-    platform :: Maybe Text,
+    -- | 播放平台
+    platform :: Platform,
     -- | 各尺寸封面图
     images :: SubjectImages,
     -- | 卷数（书籍类型适用）
@@ -251,7 +279,7 @@ instance FromJSON SubjectDetail where
       <*> o .: "nsfw"
       <*> o .: "locked"
       <*> o .:? "date"
-      <*> o .:? "platform"
+      <*> o .: "platform"
       <*> o .: "images"
       <*> o .: "volumes"
       <*> o .: "eps"
