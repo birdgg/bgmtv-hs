@@ -180,14 +180,14 @@ data Subject = Subject
     name :: Text,
     -- | 中文名称
     nameCn :: Text,
-    -- | 放送/发售日期
-    date :: Text,
+    -- | 放送/发售日期（可能为空）
+    date :: Maybe Text,
     -- | 平台（如 \"TV\"、\"WEB\" 等）
     platform :: Text,
     -- | 各尺寸封面图
     images :: SubjectImages,
-    -- | 默认封面图 URL
-    image :: Text,
+    -- | 默认封面图 URL（可能为空）
+    image :: Maybe Text,
     -- | 总集数
     eps :: Int64
   }
@@ -199,10 +199,10 @@ instance FromJSON Subject where
       <$> o .: "id"
       <*> o .: "name"
       <*> o .: "name_cn"
-      <*> o .: "date"
+      <*> o .:? "date"
       <*> o .: "platform"
       <*> o .: "images"
-      <*> o .: "image"
+      <*> o .:? "image"
       <*> o .: "eps"
 
 -- | Detailed subject information from GET /v0/subjects/{id}
