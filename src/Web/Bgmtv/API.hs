@@ -14,7 +14,11 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Servant.API
 import Servant.Client (BaseUrl (..), Scheme (..))
-import Web.Bgmtv.Types
+import Web.Bgmtv.Types.Calendar (CalendarItem)
+import Web.Bgmtv.Types.Episode (EpisodesResponse)
+import Web.Bgmtv.Types.Id (SubjectId)
+import Web.Bgmtv.Types.Search (SearchRequest, SearchResponse)
+import Web.Bgmtv.Types.Subject (SubjectDetail)
 
 -- | BGM.tv API v0
 type BgmtvAPI = NamedRoutes BgmtvRoutes
@@ -48,6 +52,12 @@ data BgmtvRoutes mode = BgmtvRoutes
           :> QueryParam "limit" Int64
           :> QueryParam "offset" Int64
           :> Get '[JSON] EpisodesResponse
+  , -- | 获取每日放送列表（Legacy API）
+    getCalendar
+      :: mode
+        :- "calendar"
+          :> Header' '[Required, Strict] "User-Agent" Text
+          :> Get '[JSON] [CalendarItem]
   }
   deriving stock (Generic)
 

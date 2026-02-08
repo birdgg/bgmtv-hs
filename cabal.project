@@ -1,0 +1,9 @@
+packages: .
+
+-- GHC 9.14 ships base-4.22, template-haskell-2.24, containers-0.8.
+-- Many packages in the servant ecosystem haven't released upper bound bumps yet.
+-- Remove once the ecosystem catches up to GHC 9.14.
+allow-newer:
+  all:base,
+  all:template-haskell,
+  all:containers

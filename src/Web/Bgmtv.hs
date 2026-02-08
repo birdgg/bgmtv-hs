@@ -2,7 +2,7 @@
 --
 -- @
 -- client <- newBgmtvClient (defaultConfig "my-app\/1.0")
--- result <- client.searchAnime "葬送的芙莉蓮"
+-- detail <- client.getSubject (SubjectId 425251)
 -- @
 --
 -- Use 'newBgmtvClientWith' to provide a custom 'Network.HTTP.Client.Manager'.
@@ -12,30 +12,40 @@ module Web.Bgmtv
   , defaultConfig
 
     -- * Client Record
-  , BgmtvClient (..)
+  , BgmtvClient
   , newBgmtvClient
   , newBgmtvClientWith
 
-    -- * Running Requests
-  , runBgmtv
-  , runBgmtvWith
-
-    -- * Low-level ClientM Functions
-  , searchSubjectsM
-  , getSubjectM
-  , getEpisodesM
-
     -- * Types
-  , module Web.Bgmtv.Types
+
+    -- ** ID Types
+  , module Web.Bgmtv.Types.Id
+
+    -- ** Enums
+  , module Web.Bgmtv.Types.Enums
+
+    -- ** Search
+  , module Web.Bgmtv.Types.Search
+
+    -- ** Subject
+  , module Web.Bgmtv.Types.Subject
+
+    -- ** Episode
+  , module Web.Bgmtv.Types.Episode
+
+    -- ** Calendar
+  , module Web.Bgmtv.Types.Calendar
 
     -- * API
   , bgmtvBaseUrl
-
-    -- * Errors
-  , BgmtvError (..)
   )
 where
 
 import Web.Bgmtv.API (bgmtvBaseUrl)
 import Web.Bgmtv.Client
-import Web.Bgmtv.Types
+import Web.Bgmtv.Types.Calendar
+import Web.Bgmtv.Types.Enums
+import Web.Bgmtv.Types.Episode
+import Web.Bgmtv.Types.Id
+import Web.Bgmtv.Types.Search
+import Web.Bgmtv.Types.Subject

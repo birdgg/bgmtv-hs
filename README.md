@@ -10,42 +10,83 @@ Add to your cabal file:
 build-depends: bgmtv
 ```
 
-## Usage
+## Quick Start
 
 ```haskell
 import Web.Bgmtv
 
 main :: IO ()
 main = do
-  let config = defaultConfig "your-app/1.0"
+  client <- newBgmtvClient (defaultConfig "my-app/1.0")
 
-  -- Search for anime
-  result <- searchAnime config "葬送的芙莉蓮"
+  -- Search subjects
+  result <- client.searchSubjects (SearchRequest "葬送的芙莉蓮" Nothing Nothing Nothing)
   case result of
-    Right subjects -> mapM_ print subjects
+    Right resp -> mapM_ print resp.list
     Left err -> print err
 
-  -- Get subject details
-  detail <- runBgmtv config (getSubjectM 425249)
+  -- Get subject details (type-safe ID)
+  detail <- client.getSubject (SubjectId 425251)
   print detail
 
-  -- Get all episodes with auto-pagination
-  episodes <- getAllEpisodes config 425249
+  -- Get episodes with pagination
+  episodes <- client.getEpisodes (SubjectId 425251) (Just 100) (Just 0)
   print episodes
+
+  -- Get daily airing schedule
+  calendar <- client.getCalendar
+  print calendar
 ```
 
-## API Coverage
+## Client Creation
 
-| Endpoint | Function | Description |
-|----------|----------|-------------|
-| `POST /v0/search/subjects` | `searchSubjectsM` | Search subjects |
-| `GET /v0/subjects/{id}` | `getSubjectM` | Get subject details |
-| `GET /v0/episodes` | `getEpisodesM` | Get episodes |
+```haskell
+-- Simple: auto-managed HTTP connection
+client <- newBgmtvClient (defaultConfig "my-app/1.0")
 
-## High-level Functions
+-- Advanced: custom HTTP Manager (shared connection pool, custom TLS, etc.)
+import Network.HTTP.Client (newManager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
 
-- `searchAnime` - Search for Japanese anime
-- `getAllEpisodes` - Get all episodes with automatic pagination
+manager <- newManager tlsManagerSettings
+let client = newBgmtvClientWith manager (defaultConfig "my-app/1.0")
+```
+
+## BgmtvClient API
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `searchSubjects` | `SearchRequest -> IO (Either BgmtvError SearchResponse)` | Search subjects with filters |
+| `getSubject` | `SubjectId -> IO (Either BgmtvError SubjectDetail)` | Get subject details by ID |
+| `getEpisodes` | `SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Either BgmtvError EpisodesResponse)` | Get episodes with pagination |
+| `getCalendar` | `IO (Either BgmtvError [CalendarItem])` | Get daily airing schedule |
+
+## Modules
+
+| Module | Description |
+|--------|-------------|
+| `Web.Bgmtv` | Main entry point, re-exports all public API |
+| `Web.Bgmtv.Types.Id` | Type-safe ID wrappers (`SubjectId`, `EpisodeId`) |
+| `Web.Bgmtv.Types.Enums` | Enum types (`SubjectType`, `EpisodeType`, `Platform`) |
+| `Web.Bgmtv.Types.Subject` | Subject types (`Subject`, `SubjectDetail`, `LegacySubject`, `Rating`) |
+| `Web.Bgmtv.Types.Episode` | Episode types (`Episode`, `EpisodesResponse`) |
+| `Web.Bgmtv.Types.Search` | Search types (`SearchRequest`, `SearchFilter`, `SearchResponse`) |
+| `Web.Bgmtv.Types.Calendar` | Calendar types (`CalendarItem`) |
+| `Web.Bgmtv.API` | Servant API type definition |
+| `Web.Bgmtv.Client` | Client implementation |
+
+## Type-safe IDs
+
+ID types use newtype wrappers to prevent mixing up different identifiers at compile time:
+
+```haskell
+let sid = SubjectId 12345   -- Subject ID
+let eid = EpisodeId 67890   -- Episode ID
+
+-- These are different types; the compiler prevents misuse
+getSubject client sid   -- OK
+-- getSubject client eid  -- Compile error!
+```
 
 ## License
 
