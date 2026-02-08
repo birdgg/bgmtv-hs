@@ -36,6 +36,9 @@ module Web.Bgmtv
     -- ** Calendar
   , module Web.Bgmtv.Types.Calendar
 
+    -- ** Error
+  , module Web.Bgmtv.Types.Error
+
     -- * API
   , bgmtvBaseUrl
   )
@@ -44,6 +47,7 @@ where
 import Web.Bgmtv.API (bgmtvBaseUrl)
 import Web.Bgmtv.Client
 import Web.Bgmtv.Types.Calendar
+import Web.Bgmtv.Types.Error
 import Web.Bgmtv.Types.Enums
 import Web.Bgmtv.Types.Episode
 import Web.Bgmtv.Types.Id

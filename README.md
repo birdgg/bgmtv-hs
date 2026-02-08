@@ -71,9 +71,47 @@ let client = newBgmtvClientWith manager (defaultConfig "my-app/1.0")
 | `Web.Bgmtv.Types.Subject` | Subject types (`Subject`, `SubjectDetail`, `LegacySubject`, `Rating`) |
 | `Web.Bgmtv.Types.Episode` | Episode types (`Episode`, `EpisodesResponse`) |
 | `Web.Bgmtv.Types.Search` | Search types (`SearchRequest`, `SearchFilter`, `SearchResponse`) |
+| `Web.Bgmtv.Types.Error` | Error types (`BgmtvError`, `ApiError`, `ErrorDetails`) |
 | `Web.Bgmtv.Types.Calendar` | Calendar types (`CalendarItem`) |
 | `Web.Bgmtv.API` | Servant API type definition |
 | `Web.Bgmtv.Client` | Client implementation |
+
+## Error Handling
+
+All client methods return `Either BgmtvError a`. The `BgmtvError` sum type covers all possible failure modes:
+
+```haskell
+data BgmtvError
+  = BgmtvApiError ApiError       -- Structured API error (parsed from JSON response)
+  | BgmtvHttpError Int Text      -- HTTP error (status code, raw body)
+  | BgmtvDecodeError Text        -- Response decode failure
+  | BgmtvConnectionError Text    -- Network/connection error
+```
+
+`ApiError` contains the structured error body returned by the BGM.tv API:
+
+```haskell
+data ApiError = ApiError
+  { title       :: Text          -- Error title (e.g. "Not Found")
+  , details     :: ErrorDetails  -- Request path and method
+  , requestId   :: Text          -- Unique request ID for debugging
+  , description :: Text          -- Human-readable error description
+  }
+```
+
+```haskell
+result <- client.getSubject (SubjectId 999999)
+case result of
+  Right subject -> putStrLn subject.name
+  Left (BgmtvApiError apiErr) ->
+    putStrLn $ "API error: " <> apiErr.title <> " - " <> apiErr.description
+  Left (BgmtvHttpError status body) ->
+    putStrLn $ "HTTP " <> show status <> ": " <> body
+  Left (BgmtvConnectionError msg) ->
+    putStrLn $ "Connection failed: " <> msg
+  Left (BgmtvDecodeError msg) ->
+    putStrLn $ "Decode error: " <> msg
+```
 
 ## Type-safe IDs
 
