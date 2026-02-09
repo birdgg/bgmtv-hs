@@ -5,7 +5,7 @@ module Web.Bgmtv.Client
   , defaultConfig
 
     -- * Client Record
-  , BgmtvClient
+  , BgmtvClient (..)
   , newBgmtvClient
   , newBgmtvClientWith
 
