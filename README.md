@@ -56,10 +56,10 @@ let client = newBgmtvClientWith manager (defaultConfig "my-app/1.0")
 
 | Method | Type | Description |
 |--------|------|-------------|
-| `searchSubjects` | `SearchRequest -> IO (Either BgmtvError SearchResponse)` | Search subjects with filters |
-| `getSubject` | `SubjectId -> IO (Either BgmtvError SubjectDetail)` | Get subject details by ID |
-| `getEpisodes` | `SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Either BgmtvError EpisodesResponse)` | Get episodes with pagination |
-| `getCalendar` | `IO (Either BgmtvError [CalendarItem])` | Get daily airing schedule |
+| `searchSubjects` | `SearchRequest -> IO (Response SearchResponse)` | Search subjects with filters |
+| `getSubject` | `SubjectId -> IO (Response SubjectDetail)` | Get subject details by ID |
+| `getEpisodes` | `SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Response EpisodesResponse)` | Get episodes with pagination |
+| `getCalendar` | `IO (Response [CalendarItem])` | Get daily airing schedule |
 
 ## Modules
 
@@ -71,21 +71,19 @@ let client = newBgmtvClientWith manager (defaultConfig "my-app/1.0")
 | `Web.Bgmtv.Types.Subject` | Subject types (`Subject`, `SubjectDetail`, `LegacySubject`, `Rating`) |
 | `Web.Bgmtv.Types.Episode` | Episode types (`Episode`, `EpisodesResponse`) |
 | `Web.Bgmtv.Types.Search` | Search types (`SearchRequest`, `SearchFilter`, `SearchResponse`) |
-| `Web.Bgmtv.Types.Error` | Error types (`BgmtvError`, `ApiError`, `ErrorDetails`) |
+| `Web.Bgmtv.Types.Error` | Error types (`BgmtvError`, `ApiError`, `ErrorDetails`, `Response`) |
 | `Web.Bgmtv.Types.Calendar` | Calendar types (`CalendarItem`) |
 | `Web.Bgmtv.API` | Servant API type definition |
 | `Web.Bgmtv.Client` | Client implementation |
 
 ## Error Handling
 
-All client methods return `Either BgmtvError a`. The `BgmtvError` sum type covers all possible failure modes:
+All client methods return `Response a` (alias for `Either BgmtvError a`). Errors use a two-layer pattern separating network errors from domain errors:
 
 ```haskell
 data BgmtvError
-  = BgmtvApiError ApiError       -- Structured API error (parsed from JSON response)
-  | BgmtvHttpError Int Text      -- HTTP error (status code, raw body)
-  | BgmtvDecodeError Text        -- Response decode failure
-  | BgmtvConnectionError Text    -- Network/connection error
+  = ServantError ClientError     -- Network/HTTP layer (raw servant-client error)
+  | BgmtvApiError ApiError       -- Structured API error (parsed from JSON response)
 ```
 
 `ApiError` contains the structured error body returned by the BGM.tv API:
@@ -105,12 +103,8 @@ case result of
   Right subject -> putStrLn subject.name
   Left (BgmtvApiError apiErr) ->
     putStrLn $ "API error: " <> apiErr.title <> " - " <> apiErr.description
-  Left (BgmtvHttpError status body) ->
-    putStrLn $ "HTTP " <> show status <> ": " <> body
-  Left (BgmtvConnectionError msg) ->
-    putStrLn $ "Connection failed: " <> msg
-  Left (BgmtvDecodeError msg) ->
-    putStrLn $ "Decode error: " <> msg
+  Left (ServantError err) ->
+    putStrLn $ "Network error: " <> show err
 ```
 
 ## Type-safe IDs

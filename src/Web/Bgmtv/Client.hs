@@ -23,7 +23,7 @@ import Web.Bgmtv.API (BgmtvRoutes, bgmtvBaseUrl)
 import qualified Web.Bgmtv.API as API
 import Web.Bgmtv.Types.Calendar (CalendarItem)
 import Web.Bgmtv.Types.Episode (EpisodesResponse)
-import Web.Bgmtv.Types.Error (BgmtvError, fromClientError)
+import Web.Bgmtv.Types.Error (Response, fromClientError)
 import Web.Bgmtv.Types.Id (SubjectId)
 import Web.Bgmtv.Types.Search (SearchRequest, SearchResponse)
 import Web.Bgmtv.Types.Subject (SubjectDetail)
@@ -52,13 +52,13 @@ defaultConfig ua =
 -- @
 data BgmtvClient = BgmtvClient
   { -- | Search subjects with custom request
-    searchSubjects :: SearchRequest -> IO (Either BgmtvError SearchResponse)
+    searchSubjects :: SearchRequest -> IO (Response SearchResponse)
   , -- | Get subject details by ID
-    getSubject :: SubjectId -> IO (Either BgmtvError SubjectDetail)
+    getSubject :: SubjectId -> IO (Response SubjectDetail)
   , -- | Get episodes with manual pagination
-    getEpisodes :: SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Either BgmtvError EpisodesResponse)
+    getEpisodes :: SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Response EpisodesResponse)
   , -- | Get daily airing schedule (legacy API)
-    getCalendar :: IO (Either BgmtvError [CalendarItem])
+    getCalendar :: IO (Response [CalendarItem])
   }
 
 -- | Create a new BGM.tv client with auto-managed HTTP connection
@@ -81,7 +81,7 @@ newBgmtvClientWith manager config =
         run (API.getCalendar client' config.userAgent)
     }
  where
-  run :: ClientM a -> IO (Either BgmtvError a)
+  run :: ClientM a -> IO (Response a)
   run action = first fromClientError <$> runClientM action env
 
   env :: ClientEnv

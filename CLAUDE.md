@@ -27,8 +27,8 @@ BGM.tv API 的 Haskell 客户端库，使用 servant-client 实现类型安全�
 
 ### API 层次
 
-1. **高级函数** (`searchAnime`, `getSubject`, `getAllEpisodes`) - 返回 `IO (Either BgmtvError a)`，自动处理配置和 HTTP 管理器
-2. **低级函数** (`searchSubjectsM`, `getSubjectM`, `getEpisodesM`) - 返回 `ClientM a`，可通过 `runBgmtv` 组合执行
+1. **高级函数** - `BgmtvClient` record，返回 `IO (Response a)`（即 `IO (Either BgmtvError a)`），自动处理配置和 HTTP 管理器
+2. **低级函数** - 通过 `genericClient` 生成的 `ClientM a` 函数
 
 ### 客户端创建
 
@@ -50,8 +50,8 @@ ID 类型使用 newtype 包装，防止编译时混淆不同类型的标识符�
 
 ```haskell
 -- SubjectId 和 EpisodeId 是不同类型，编译器会阻止混用
-getSubject :: BgmtvConfig -> SubjectId -> IO (Either BgmtvError SubjectDetail)
-getAllEpisodes :: BgmtvConfig -> SubjectId -> IO (Either BgmtvError [Episode])
+getSubject :: SubjectId -> IO (Response SubjectDetail)
+getEpisodes :: SubjectId -> Maybe Int64 -> Maybe Int64 -> IO (Response EpisodesResponse)
 
 -- 创建 ID
 let sid = SubjectId 12345

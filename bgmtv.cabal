@@ -32,6 +32,7 @@ library
         base          >= 4.20 && < 5,
         aeson         >= 2.0  && < 3,
         bytestring    >= 0.11 && < 0.13,
+        deepseq       >= 1.4  && < 2,
         http-client   >= 0.7  && < 0.8,
         http-client-tls >= 0.3 && < 0.4,
         http-types    >= 0.12 && < 0.13,

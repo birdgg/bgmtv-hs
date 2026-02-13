@@ -1,18 +1,22 @@
 module Web.Bgmtv.Types.Error
-  ( BgmtvError (..)
+  ( -- * Error Types
+    BgmtvError (..)
   , ApiError (..)
   , ErrorDetails (..)
+
+    -- * Type Aliases
+  , Response
+
+    -- * Conversion
   , fromClientError
   )
 where
 
+import Control.DeepSeq (NFData (..))
+import Control.Exception (Exception)
 import Data.Aeson
-import qualified Data.ByteString.Lazy as LBS
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
 import GHC.Generics (Generic)
-import Network.HTTP.Types.Status (statusCode)
 import Servant.Client (ClientError (..), ResponseF (..))
 
 data ErrorDetails = ErrorDetails
@@ -20,7 +24,7 @@ data ErrorDetails = ErrorDetails
   , method :: Text
   }
   deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+  deriving anyclass (FromJSON, ToJSON, NFData)
 
 -- | Structured error response body from the BGM.tv API
 data ApiError = ApiError
@@ -30,6 +34,7 @@ data ApiError = ApiError
   , description :: Text
   }
   deriving stock (Show, Eq, Generic)
+  deriving anyclass (NFData)
 
 instance FromJSON ApiError where
   parseJSON = withObject "ApiError" $ \o ->
@@ -49,34 +54,32 @@ instance ToJSON ApiError where
       ]
 
 -- | All possible errors from the BGM.tv client
+--
+-- Two-layer error separation: network\/HTTP errors ('ServantError') are kept
+-- distinct from domain-specific API errors ('BgmtvApiError').
 data BgmtvError
-  = -- | Structured API error response (parsed from JSON)
+  = -- | Network\/HTTP layer error (raw servant-client error)
+    ServantError ClientError
+  | -- | Structured API error response (parsed from JSON)
     BgmtvApiError ApiError
-  | -- | HTTP error with status code and raw body
-    BgmtvHttpError Int Text
-  | -- | Response decode failure
-    BgmtvDecodeError Text
-  | -- | Network\/connection error
-    BgmtvConnectionError Text
-  deriving stock (Show, Eq)
+  deriving stock (Show, Generic)
+
+instance NFData BgmtvError where
+  rnf (ServantError !_) = ()
+  rnf (BgmtvApiError e) = rnf e
+
+instance Exception BgmtvError
+
+-- | Convenience alias for client return types
+type Response a = Either BgmtvError a
 
 -- | Convert a servant 'ClientError' to 'BgmtvError'
+--
+-- Attempts to parse the response body as a structured 'ApiError'.
+-- Falls back to wrapping the raw 'ClientError' as 'ServantError'.
 fromClientError :: ClientError -> BgmtvError
-fromClientError (FailureResponse _req resp) =
+fromClientError err@(FailureResponse _req resp) =
   case eitherDecode (responseBody resp) of
     Right apiErr -> BgmtvApiError apiErr
-    Left _ ->
-      BgmtvHttpError
-        (statusCode (responseStatusCode resp))
-        (decodeBody (responseBody resp))
-fromClientError (DecodeFailure msg _resp) =
-  BgmtvDecodeError msg
-fromClientError (UnsupportedContentType _mediaType _resp) =
-  BgmtvDecodeError "Unsupported content type"
-fromClientError (InvalidContentTypeHeader _resp) =
-  BgmtvDecodeError "Invalid content type header"
-fromClientError (ConnectionError ex) =
-  BgmtvConnectionError (T.pack (show ex))
-
-decodeBody :: LBS.ByteString -> Text
-decodeBody = TE.decodeUtf8Lenient . LBS.toStrict
+    Left _ -> ServantError err
+fromClientError err = ServantError err
